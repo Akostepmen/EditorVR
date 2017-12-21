@@ -15,7 +15,7 @@ using UnityEngine.UI;
 namespace UnityEditor.Experimental.EditorVR.Workspaces
 {
     sealed class AssetGridItem : DraggableListItem<AssetData, string>, IPlaceSceneObject, IUsesSpatialHash,
-        IUsesViewerBody, IRayVisibilitySettings, IRequestFeedback, IRayToNode
+        IUsesViewerBody, IRayVisibilitySettings, IRequestFeedback, IRayToNode, IUsesDirectSelection, IGetPreviewOrigin
     {
         const float k_PreviewDuration = 0.1f;
         const float k_MinPreviewScale = 0.01f;
@@ -361,6 +361,11 @@ namespace UnityEditor.Experimental.EditorVR.Workspaces
                 {
                     switch (data.type)
                     {
+                        case "AudioClip":
+#if UNITY_EDITOR
+                            PlaceAudioClip(rayOrigin, data);
+#endif
+                            break;
                         case "Prefab":
                         case "Model":
 #if UNITY_EDITOR
@@ -381,6 +386,24 @@ namespace UnityEditor.Experimental.EditorVR.Workspaces
 
             StartCoroutine(HideGrabbedObject(m_DragObject.gameObject, gridItem.m_Cube));
             base.OnDragEnded(handle, eventData);
+        }
+
+        void PlaceAudioClip(Transform rayOrigin, AssetData data)
+        {
+            var selections = this.GetDirectSelection();
+            if (selections.Count > 0)
+            {
+                GameObject raySelection;
+                if (selections.TryGetValue(rayOrigin, out raySelection))
+                {
+                    AudioInstantiation.AttachAudioClip(raySelection, data);
+                }
+            }
+            else
+            {
+                var previewOrigin = this.GetPreviewOriginForRayOrigin(rayOrigin);
+                AudioInstantiation.PlaceAudioObject(data, previewOrigin.position);
+            }
         }
 
         void OnHoverStarted(BaseHandle handle, HandleEventData eventData)
@@ -597,6 +620,8 @@ namespace UnityEditor.Experimental.EditorVR.Workspaces
         {
             this.ClearFeedbackRequests();
         }
+
+        public void OnResetDirectSelectionState() {}
     }
 }
 #endif
