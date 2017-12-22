@@ -422,7 +422,19 @@ namespace UnityEditor.Experimental.EditorVR.Workspaces
             }
 
             base.OnHoverStart(handle, eventData);
-            ShowGrabFeedback(this.RequestNodeFromRayOrigin(eventData.rayOrigin));
+
+            var feedbackNode = this.RequestNodeFromRayOrigin(eventData.rayOrigin);
+            ShowGrabFeedback(feedbackNode);
+
+            switch (data.type)
+            {
+                case "AudioClip":
+#if UNITY_EDITOR
+                    Debug.Log("hovering audio clip");
+                    ShowAudioClipPreviewFeedback(feedbackNode);
+#endif
+                    break;
+            }
         }
 
         void OnHoverEnded(BaseHandle handle, HandleEventData eventData)
@@ -440,7 +452,7 @@ namespace UnityEditor.Experimental.EditorVR.Workspaces
                 }
             }
 
-            HideGrabFeedback();
+            HideFeedback();
         }
 
         IEnumerator AnimatePreview(bool @out)
@@ -616,7 +628,18 @@ namespace UnityEditor.Experimental.EditorVR.Workspaces
             this.AddFeedbackRequest(request);
         }
 
-        void HideGrabFeedback()
+        void ShowAudioClipPreviewFeedback(Node node)
+        {
+            var request = (ProxyFeedbackRequest)this.GetFeedbackRequestObject(typeof(ProxyFeedbackRequest));
+            request.control = VRInputDevice.VRControl.Action1;
+            request.node = node;
+            request.suppressExisting = true;
+            request.maxPresentations = 1000;
+            request.tooltipText = "Hold down to preview audio";
+            this.AddFeedbackRequest(request);
+        }
+
+        void HideFeedback()
         {
             this.ClearFeedbackRequests();
         }
