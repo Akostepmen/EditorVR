@@ -12,7 +12,6 @@ namespace UnityEditor.Experimental.EditorVR.Tools
         GameObject[] m_HighlightObjects;
 
         public Action<AudioComponentType> selectComponent;
-        public Action<PrimitiveType, bool> selectPrimitive;
         public Action close;
 
         public Bounds localBounds { get; private set; }
@@ -31,20 +30,6 @@ namespace UnityEditor.Experimental.EditorVR.Tools
             localBounds = ObjectUtils.GetBounds(transform);
         }
 
-        public void SelectPrimitive(int type)
-        {
-            Debug.Log("selecting primitive: " + type);
-
-            selectPrimitive((PrimitiveType)type, false);
-
-            // the order of the objects in m_HighlightObjects is matched to the values of the PrimitiveType enum elements
-            for (var i = 0; i < m_HighlightObjects.Length; i++)
-            {
-                var go = m_HighlightObjects[i];
-                go.SetActive(i == type);
-            }
-        }
-
         public void SelectAudioComponent(int type)
         {
             selectComponent((AudioComponentType)type);
@@ -59,7 +44,7 @@ namespace UnityEditor.Experimental.EditorVR.Tools
 
         public void SelectFreeformCuboid()
         {
-            selectPrimitive(PrimitiveType.Cube, true);
+            //selectPrimitive(PrimitiveType.Cube, true);
 
             foreach (var go in m_HighlightObjects)
                 go.SetActive(false);

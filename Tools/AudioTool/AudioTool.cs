@@ -10,15 +10,26 @@ namespace UnityEditor.Experimental.EditorVR.Tools
     public enum AudioComponentType
     {
         Source,
-        Listener,
-        Filter,
-        ReverbZone
+        ReverbZone,
+        ReverbFilter,
+        HighPassFilter,
+        LowPassFilter,
+        ChorusFilter,
+        DistortionFilter,
+        EchoFilter
+    }
+
+    public enum AudioCreationState
+    {
+        Idle,
+        Modifying,
+        End
     }
 
     [MainMenuItem("Audio", "Create", "Place & edit scene audio")]
     sealed class AudioTool : MonoBehaviour, ITool, IStandardActionMap, IConnectInterfaces, IInstantiateMenuUI,
         IUsesRayOrigin, IUsesSpatialHash, IUsesViewerScale, ISelectTool, IIsHoveringOverUI, IIsMainMenuVisible,
-        IRayVisibilitySettings, IMenuIcon, IRequestFeedback, IUsesNode
+        IRayVisibilitySettings, IMenuIcon, IRequestFeedback, IUsesNode, IUsesDirectSelection
     {
         [SerializeField]
         CreatePrimitiveMenu m_MenuPrefab;
@@ -67,7 +78,6 @@ namespace UnityEditor.Experimental.EditorVR.Tools
             var audioToolMenu = m_ToolMenu.GetComponent<AudioToolMenu>();
             this.ConnectInterfaces(audioToolMenu, rayOrigin);
 
-            audioToolMenu.selectPrimitive = SetSelectedPrimitive;
             audioToolMenu.selectComponent = SetSelectedComponent;
             audioToolMenu.close = Close;
 
@@ -104,14 +114,12 @@ namespace UnityEditor.Experimental.EditorVR.Tools
                 case PrimitiveCreationStates.EndPoint:
                 {
                     UpdatePositions();
-                    SetScalingForObjectType();
                     CheckForTriggerRelease(standardInput, consumeControl);
                     break;
                 }
                 case PrimitiveCreationStates.Freeform:
                 {
                     UpdatePositions();
-                    UpdateFreeformScale();
                     CheckForTriggerRelease(standardInput, consumeControl);
                     break;
                 }
@@ -123,23 +131,45 @@ namespace UnityEditor.Experimental.EditorVR.Tools
                 this.AddRayVisibilitySettings(rayOrigin, this, false, true);
         }
 
-        void SetSelectedPrimitive(PrimitiveType type, bool isFreeform)
-        {
-            m_SelectedPrimitiveType = type;
-            m_Freeform = isFreeform;
-        }
-
         void SetSelectedComponent(AudioComponentType type)
         {
             m_SelectedComponentType = type;
             Debug.Log("set selected comp type: " + type);
         }
 
+        GameObject TryGetRayDirectSelection()
+        {
+            GameObject raySelection = null;
+            var selections = this.GetDirectSelection();
+            if (selections != null)
+                selections.TryGetValue(rayOrigin, out raySelection);
+
+            return raySelection;
+        }
+
         void HandleStartPoint(Standard standardInput, ConsumeControlDelegate consumeControl)
         {
+            m_CurrentGameObject = null;
             if (standardInput.action.wasJustPressed)
             {
-                m_CurrentGameObject = GameObject.CreatePrimitive(m_SelectedPrimitiveType);
+                consumeControl(standardInput.action);
+
+                Debug.Log("standard action press in audio tool!");
+                m_CurrentGameObject = Selection.activeGameObject;
+
+                if (m_CurrentGameObject == null)
+                {
+                    Debug.Log("no object selected to add audio components to!");
+                    return;
+                }
+                else
+                {
+                    Debug.Log("selected object found!", m_CurrentGameObject);
+                    AddSelectedComponent();
+                    return;
+                }
+
+                /*
                 Undo.RegisterCreatedObjectUndo(m_CurrentGameObject, "Create Primitive");
 
                 // Set starting minimum scale (don't allow zero scale object to be created)
@@ -155,31 +185,108 @@ namespace UnityEditor.Experimental.EditorVR.Tools
 
                 consumeControl(standardInput.action);
                 Selection.activeGameObject = m_CurrentGameObject;
+                */
             }
         }
 
-        void SetScalingForObjectType()
+        void AddSelectedComponent()
         {
-            var corner = (m_EndPoint - m_StartPoint).magnitude;
+            switch (m_SelectedComponentType)
+            {
+                case AudioComponentType.Source:
+                    AddSource(m_CurrentGameObject);
+                    break;
+                case AudioComponentType.ReverbZone:
+                    AddReverbZone(m_CurrentGameObject);
+                    break;
+                case AudioComponentType.ReverbFilter:
+                    AddReverbFilter(m_CurrentGameObject);
+                    break;
+                case AudioComponentType.LowPassFilter:
+                    AddLowPassFilter(m_CurrentGameObject);
+                    break;
+                case AudioComponentType.HighPassFilter:
+                    AddHighPassFilter(m_CurrentGameObject);
+                    break;
+                case AudioComponentType.ChorusFilter:
+                    AddChorusFilter(m_CurrentGameObject);
+                    break;
+                case AudioComponentType.DistortionFilter:
+                    AddDistortionFilter(m_CurrentGameObject);
+                    break;
+                case AudioComponentType.EchoFilter:
+                    AddEchoFilter(m_CurrentGameObject);
+                    break;
+            }
+        }
 
-            // it feels better to scale these primitives vertically with the draw point
-            if (m_SelectedPrimitiveType == PrimitiveType.Capsule || m_SelectedPrimitiveType == PrimitiveType.Cylinder || m_SelectedPrimitiveType == PrimitiveType.Cube)
-                m_CurrentGameObject.transform.localScale = Vector3.one * corner * 0.5f;
+        AudioSource AddSource(GameObject go)
+        {
+            return go.TryAddComponent<AudioSource>();
+        }
+
+        AudioReverbZone AddReverbZone(GameObject go)
+        {
+            return go.TryAddComponent<AudioReverbZone>();
+        }
+
+        AudioReverbFilter AddReverbFilter(GameObject go)
+        {
+            return TryAddFilter<AudioReverbFilter>(go);
+        }
+
+        AudioLowPassFilter AddLowPassFilter(GameObject go)
+        {
+            return TryAddFilter<AudioLowPassFilter>(go);
+        }
+
+        AudioHighPassFilter AddHighPassFilter(GameObject go)
+        {
+            return TryAddFilter<AudioHighPassFilter>(go);
+        }
+
+        AudioChorusFilter AddChorusFilter(GameObject go)
+        {
+            return TryAddFilter<AudioChorusFilter>(go);
+        }
+
+        AudioDistortionFilter AddDistortionFilter(GameObject go)
+        {
+            return TryAddFilter<AudioDistortionFilter>(go);
+        }
+
+        AudioEchoFilter AddEchoFilter(GameObject go)
+        {
+            return TryAddFilter<AudioEchoFilter>(go);
+        }
+
+        T TryAddFilter<T>(GameObject go) where T: Component
+        {
+            if (HasSourceOrListener(go))
+            {
+                return go.TryAddComponent<T>();
+            }
             else
-                m_CurrentGameObject.transform.localScale = Vector3.one * corner;
+            {
+                Debug.LogWarning("Filters need an Source or Listener on the object!");
+                return null;
+            }
+        }
+
+        bool HasSourceOrListener(GameObject go)
+        {
+            if (go.GetComponent<AudioSource>() != null)
+                return true;
+            else if (go.GetComponent<AudioListener>() != null)
+                return true;
+
+            return false;
         }
 
         void UpdatePositions()
         {
             m_EndPoint = rayOrigin.position + rayOrigin.forward * k_DrawDistance * this.GetViewerScale();
             m_CurrentGameObject.transform.position = (m_StartPoint + m_EndPoint) * 0.5f;
-        }
-
-        void UpdateFreeformScale()
-        {
-            var maxCorner = Vector3.Max(m_StartPoint, m_EndPoint);
-            var minCorner = Vector3.Min(m_StartPoint, m_EndPoint);
-            m_CurrentGameObject.transform.localScale = maxCorner - minCorner;
         }
 
         void CheckForTriggerRelease(Standard standardInput, ConsumeControlDelegate consumeControl)
@@ -213,6 +320,11 @@ namespace UnityEditor.Experimental.EditorVR.Tools
 
             this.RemoveRayVisibilitySettings(rayOrigin, this);
             this.ClearFeedbackRequests();
+        }
+
+        public void OnResetDirectSelectionState()
+        {
+            // do nothing for now
         }
 
         public ActionMap standardActionMap { private get; set; }
