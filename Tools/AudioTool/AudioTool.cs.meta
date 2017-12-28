@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: 41c6d2f6164784d48a86f6c86601c491
+timeCreated: 1514468445
+licenseType: Pro
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - m_MenuPrefab: {instanceID: 0}
+  - m_AudioMenuPrefab: {fileID: 114520062354053978, guid: 3f0eaa1907d643144bb92d57d04eec55,
+      type: 2}
+  - m_Icon: {instanceID: 0}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

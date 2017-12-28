@@ -390,20 +390,27 @@ namespace UnityEditor.Experimental.EditorVR.Workspaces
 
         void PlaceAudioClip(Transform rayOrigin, AssetData data)
         {
-            var selections = this.GetDirectSelection();
-            if (selections.Count > 0)
+            var selection = TryGetRayDirectSelection(rayOrigin);
+
+            if (selection != null)
             {
-                GameObject raySelection;
-                if (selections.TryGetValue(rayOrigin, out raySelection))
-                {
-                    AudioInstantiation.AttachAudioClip(raySelection, data);
-                }
+                AudioInstantiation.AttachAudioClip(selection, data);
             }
             else
             {
                 var previewOrigin = this.GetPreviewOriginForRayOrigin(rayOrigin);
                 AudioInstantiation.PlaceAudioObject(data, previewOrigin.position);
             }
+        }
+
+        GameObject TryGetRayDirectSelection(Transform rayOrigin)
+        {
+            GameObject raySelection = null;
+            var selections = this.GetDirectSelection();
+            if(selections != null)
+                selections.TryGetValue(rayOrigin, out raySelection);
+
+            return raySelection;
         }
 
         void OnHoverStarted(BaseHandle handle, HandleEventData eventData)

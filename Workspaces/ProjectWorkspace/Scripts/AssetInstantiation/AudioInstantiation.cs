@@ -31,7 +31,7 @@ namespace UnityEditor.Experimental.EditorVR.Utilities
             var source = go.GetComponent<AudioSource>();
             if (source == null)
                 source = go.AddComponent<AudioSource>();
-
+            
             source.clip = (AudioClip)data.asset;
 
             Selection.activeGameObject = go;
@@ -39,6 +39,8 @@ namespace UnityEditor.Experimental.EditorVR.Utilities
 
             return source;
         }
+
+        
 
     }
 }

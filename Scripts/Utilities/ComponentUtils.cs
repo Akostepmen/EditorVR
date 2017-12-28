@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace UnityEditor.Experimental.EditorVR.Utilities
@@ -22,6 +23,31 @@ namespace UnityEditor.Experimental.EditorVR.Utilities
             }
 
             return foundComponent;
+        }
+
+    }
+
+    public static class ComponentUtils
+    {
+        const string k_AddComponentUndoLabel = "Add Component";
+
+        public static T TryAddComponent<T>(this GameObject go) where T : Component
+        {
+            T addedComponent;
+            try
+            {
+                Undo.RecordObject(go, k_AddComponentUndoLabel);
+                addedComponent = go.AddComponent<T>();
+                Selection.activeGameObject = go;
+            }
+            catch (Exception exception)
+            {
+                Debug.LogError(exception);
+                addedComponent = null;
+            }
+
+            Undo.IncrementCurrentGroup();
+            return addedComponent;
         }
     }
 }
