@@ -22,6 +22,7 @@ namespace UnityEditor.Experimental.EditorVR.Tools
     public enum AudioCreationState
     {
         Idle,
+        Previewing,
         Modifying,
         End
     }
@@ -29,7 +30,7 @@ namespace UnityEditor.Experimental.EditorVR.Tools
     [MainMenuItem("Audio", "Create", "Place & edit scene audio")]
     sealed class AudioTool : MonoBehaviour, ITool, IStandardActionMap, IConnectInterfaces, IInstantiateMenuUI,
         IUsesRayOrigin, IUsesSpatialHash, IUsesViewerScale, ISelectTool, IIsHoveringOverUI, IIsMainMenuVisible,
-        IRayVisibilitySettings, IMenuIcon, IRequestFeedback, IUsesNode, IUsesDirectSelection
+        IRayVisibilitySettings, IMenuIcon, IRequestFeedback, IUsesNode, IUsesDirectSelection, IGetPreviewOrigin
     {
         [SerializeField]
         CreatePrimitiveMenu m_MenuPrefab;
@@ -113,13 +114,13 @@ namespace UnityEditor.Experimental.EditorVR.Tools
                 }
                 case PrimitiveCreationStates.EndPoint:
                 {
-                    UpdatePositions();
+                    //UpdatePositions();
                     CheckForTriggerRelease(standardInput, consumeControl);
                     break;
                 }
                 case PrimitiveCreationStates.Freeform:
                 {
-                    UpdatePositions();
+                    //UpdatePositions();
                     CheckForTriggerRelease(standardInput, consumeControl);
                     break;
                 }
@@ -147,6 +148,8 @@ namespace UnityEditor.Experimental.EditorVR.Tools
             return raySelection;
         }
 
+        GameObject m_PreviewObject;
+
         void HandleStartPoint(Standard standardInput, ConsumeControlDelegate consumeControl)
         {
             m_CurrentGameObject = null;
@@ -154,17 +157,27 @@ namespace UnityEditor.Experimental.EditorVR.Tools
             {
                 consumeControl(standardInput.action);
 
+                var previewOrigin = this.GetPreviewOriginForRayOrigin(rayOrigin);
+                var cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                cube.transform.localScale *= this.GetViewerScale() / 10f;
+                cube.transform.position = previewOrigin.position;
+                cube.transform.rotation = previewOrigin.rotation;
+                cube.transform.SetParent(previewOrigin);
+
+                m_PreviewObject = cube;
+
                 Debug.Log("standard action press in audio tool!");
                 m_CurrentGameObject = Selection.activeGameObject;
+                m_State = PrimitiveCreationStates.Freeform;
 
                 if (m_CurrentGameObject == null)
                 {
-                    Debug.Log("no object selected to add audio components to!");
+                    //Debug.Log("no object selected to add audio components to!");
                     return;
                 }
                 else
                 {
-                    Debug.Log("selected object found!", m_CurrentGameObject);
+                    //Debug.Log("selected object found!", m_CurrentGameObject);
                     AddSelectedComponent();
                     return;
                 }
@@ -296,6 +309,21 @@ namespace UnityEditor.Experimental.EditorVR.Tools
             {
                 m_State = PrimitiveCreationStates.StartPoint;
                 Undo.IncrementCurrentGroup();
+
+                var selection = TryGetRayDirectSelection();
+                if (selection != null)
+                {
+                    m_CurrentGameObject = selection;
+                    AddSelectedComponent();
+
+                    Debug.Log("successful component add");
+                }
+
+                if (m_PreviewObject != null)
+                {
+                    // we should animate this, temporary
+                    ObjectUtils.Destroy(m_PreviewObject);
+                }
 
                 consumeControl(standardInput.action);
             }
