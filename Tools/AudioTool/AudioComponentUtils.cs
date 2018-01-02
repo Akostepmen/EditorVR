@@ -79,16 +79,26 @@ namespace UnityEditor.Experimental.EditorVR.Tools
 
         static T TryAddFilter<T>(GameObject go) where T: Component
         {
-            if (HasSourceOrListener(go))
+            if (HasSource(go))
             {
                 return go.TryAddComponent<T>();
             }
             else
             {
-                // considering putting in an ifdef for performance reasons
+                // TODO - proper feedback for this case somehow
                 Debug.LogWarning("Filters need an Source or Listener on the object!");
                 return null;
             }
+        }
+
+        // adding to a listener that isn't the HMD isn't supported yet,
+        // so we can skip checking every object for AudioListeners for now
+        static bool HasSource(GameObject go)
+        {
+            if (go.GetComponent<AudioSource>() != null)
+                return true;
+
+            return false;
         }
 
         static bool HasSourceOrListener(GameObject go)

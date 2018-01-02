@@ -4,6 +4,7 @@ namespace UnityEditor.Experimental.EditorVR.Tools
     public enum AudioComponentType
     {
         Source,
+        Listener,
         ReverbZone,
         ReverbFilter,
         HighPassFilter,

@@ -382,7 +382,6 @@ namespace UnityEditor.Experimental.EditorVR.Workspaces
                             break;
                         case "Script":
 #if UNITY_EDITOR
-                            Debug.Log("script type on drag end!");
                             PlaceScript(rayOrigin, data);
 #endif
                             break;

@@ -47,7 +47,7 @@ namespace UnityEditor.Experimental.EditorVR.Tools
         void Start()
         {
             // Clear selection so we can't manipulate things
-            // Selection.activeGameObject = null;
+            Selection.activeGameObject = null;
 
             m_ToolMenu = this.InstantiateMenuUI(rayOrigin, m_AudioMenuPrefab);
             var audioToolMenu = m_ToolMenu.GetComponent<AudioToolMenu>();
@@ -74,6 +74,8 @@ namespace UnityEditor.Experimental.EditorVR.Tools
             InitTempPreviewCube();
         }
 
+        static readonly Vector3 k_PreviewRotation = new Vector3(1f, 3f, 0f);
+
         public void ProcessInput(ActionMapInput input, ConsumeControlDelegate consumeControl)
         {
             if (!IsActive())
@@ -91,6 +93,7 @@ namespace UnityEditor.Experimental.EditorVR.Tools
                 case AudioCreationState.Executing:
                 {
                     CheckForTriggerRelease(standardInput, consumeControl);
+                    m_PreviewObject.transform.Rotate(k_PreviewRotation, Space.Self);
                     break;
                 }
             }
@@ -117,6 +120,8 @@ namespace UnityEditor.Experimental.EditorVR.Tools
             return raySelection;
         }
 
+        // this will be removed, it just shows 
+        // a spinning cube in place of the preview icon
         void InitTempPreviewCube()
         {
             var previewOrigin = this.GetPreviewOriginForRayOrigin(rayOrigin);
@@ -136,11 +141,8 @@ namespace UnityEditor.Experimental.EditorVR.Tools
             if (standardInput.action.wasJustPressed)
             {
                 m_CurrentObject = null;
-
                 consumeControl(standardInput.action);
-
                 m_ActionState = AudioCreationState.Executing;
-
                 m_PreviewRenderer.enabled = true;
             }
         }
@@ -177,6 +179,7 @@ namespace UnityEditor.Experimental.EditorVR.Tools
 
                 consumeControl(standardInput.action);
             }
+            
         }
 
         bool IsActive()
