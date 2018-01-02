@@ -380,6 +380,12 @@ namespace UnityEditor.Experimental.EditorVR.Workspaces
                             this.AddToSpatialHash(go);
                             Undo.RegisterCreatedObjectUndo(go, "Project Workspace");
                             break;
+                        case "Script":
+#if UNITY_EDITOR
+                            Debug.Log("script type on drag end!");
+                            PlaceScript(rayOrigin, data);
+#endif
+                            break;
                     }
                 }
             }
@@ -392,15 +398,23 @@ namespace UnityEditor.Experimental.EditorVR.Workspaces
         {
             var selection = TryGetRayDirectSelection(rayOrigin);
 
-            if (selection != null)
-            {
-                AudioInstantiation.AttachAudioClip(selection, data);
-            }
-            else
-            {
+            // if we're not selecting anything, allow placing in mid-air
+            if (selection == null)
+            { 
+                selection = new GameObject(data.asset.name);
                 var previewOrigin = this.GetPreviewOriginForRayOrigin(rayOrigin);
-                AudioInstantiation.PlaceAudioObject(data, previewOrigin.position);
+                selection.transform.position = previewOrigin.position;
             }
+
+            AssetInstantiation.AttachAudioClip(selection, data);
+        }
+
+        void PlaceScript(Transform rayOrigin, AssetData data)
+        {
+            var selection = TryGetRayDirectSelection(rayOrigin);
+
+            if (selection != null)
+                AssetInstantiation.AttachScript(selection, data);
         }
 
         GameObject TryGetRayDirectSelection(Transform rayOrigin)
